@@ -1,0 +1,382 @@
+--[[
+    Premium Cross-Executor Universal Engine (V20.6 - Module 1: Combat Core UI Fix)
+    Compiled By: Combined Claude-GPT Synthetic Intelligence Framework
+    Target Environments: Delta, Hydrogen, Fluxus, Arceus X, Ronix
+    Fix: Absolute Circular Image Masking via Nested Clipping Boundary
+--]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local Settings = {
+    AimbotEnabled = true,
+    FOV = 180, 
+    CQCDistance = 35,       
+    MidDistance = 120,      
+    MaxSniperDistance = 500,
+    TeamCheck = false,
+    KillCheck = true,
+    WallCheck = true,
+    IgnoreShields = true,
+    TargetPart = "Head"
+}
+
+--// Global Communication Interface
+_G.GlobalTargetPart = nil
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(240, 240, 240)
+FOVCircle.Thickness = 1.5
+FOVCircle.NumSides = 32 
+FOVCircle.Filled = false
+FOVCircle.Visible = true
+FOVCircle.Radius = Settings.FOV
+
+local function CalibrateFOVCenter()
+    local viewportSize = Camera.ViewportSize
+    FOVCircle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+end
+CalibrateFOVCenter()
+
+--// User Interface Construction Layer
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ModularMatrix_V20_6"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+--// FIXED CIRCULAR LOGO FRAMEWORK
+local LogoMaskFrame = Instance.new("Frame")
+LogoMaskFrame.Name = "LogoMaskFrame"
+LogoMaskFrame.Size = UDim2.new(0, 50, 0, 50)
+LogoMaskFrame.Position = UDim2.new(1, -65, 0, 45)
+LogoMaskFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+LogoMaskFrame.ClipsDescendants = true -- Crucial: Forces children to conform to shape boundaries
+LogoMaskFrame.BorderSizePixel = 0
+LogoMaskFrame.Parent = ScreenGui
+
+local UICornerMask = Instance.new("UICorner")
+UICornerMask.CornerRadius = UDim.new(1, 0) -- Generates perfect geometric circle
+UICornerMask.Parent = LogoMaskFrame
+
+local LogoButton = Instance.new("ImageButton")
+LogoButton.Name = "LogoButton"
+LogoButton.Size = UDim2.new(1, 0, 1, 0)
+LogoButton.Position = UDim2.new(0, 0, 0, 0)
+LogoButton.BackgroundTransparency = 1
+LogoButton.Image = "rbxassetid://15771263462"
+LogoButton.Parent = LogoMaskFrame
+
+local UIStrokeLogo = Instance.new("UIStroke")
+UIStrokeLogo.Color = Color3.fromRGB(140, 80, 255) -- Retaining purple aesthetic from 1000059959.png
+UIStrokeLogo.Thickness = 2
+UIStrokeLogo.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIStrokeLogo.Parent = LogoMaskFrame
+
+--// MAIN CONFIGURATION PANEL
+local MainMenu = Instance.new("Frame")
+MainMenu.Name = "MainMenu"
+MainMenu.Size = UDim2.new(0, 245, 0, 335)
+MainMenu.Position = UDim2.new(0.1, 0, 0.2, 0)
+MainMenu.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainMenu.BorderSizePixel = 0
+MainMenu.Active = true
+MainMenu.Visible = true
+MainMenu.Parent = ScreenGui
+
+local UICornerMain = Instance.new("UICorner")
+UICornerMain.CornerRadius = UDim.new(0, 8)
+UICornerMain.Parent = MainMenu
+
+local UIStrokeMain = Instance.new("UIStroke")
+UIStrokeMain.Color = Color3.fromRGB(40, 40, 40)
+UIStrokeMain.Thickness = 1
+UIStrokeMain.Parent = MainMenu
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 0, 45)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "SYSTEM MATRIX V20.6"
+Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainMenu
+
+local function RegisterDragEngine(frame)
+    local dragToggle, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            dragToggle = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragToggle = false end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragToggle then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+RegisterDragEngine(MainMenu)
+
+local function CreateMenuToggle(name, labelText, position, defaultState, triggerCallback)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Size = UDim2.new(1, -30, 0, 38)
+    Button.Position = position
+    Button.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    Button.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Button.Font = Enum.Font.SourceSansSemibold
+    Button.TextSize = 16
+    Button.Text = labelText .. (defaultState and ": ON" or ": OFF")
+    Button.Parent = MainMenu
+    
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = Button
+    
+    local UIStroke = Instance.new("UIStroke")
+    UIStroke.Color = Color3.fromRGB(50, 50, 50)
+    UIStroke.Thickness = 1
+    UIStroke.Parent = Button
+    
+    local currentState = defaultState
+    Button.MouseButton1Click:Connect(function()
+        currentState = not currentState
+        Button.Text = labelText .. (currentState and ": ON" or ": OFF")
+        triggerCallback(currentState)
+    end)
+    return Button
+end
+
+CreateMenuToggle("AimbotToggle", "Aimbot Tracking Matrix", UDim2.new(0, 15, 0, 50), Settings.AimbotEnabled, function(state) Settings.AimbotEnabled = state end)
+
+local FOVDisplayLabel = Instance.new("TextLabel")
+FOVDisplayLabel.Size = UDim2.new(1, -30, 0, 20)
+FOVDisplayLabel.Position = UDim2.new(0, 15, 0, 95)
+FOVDisplayLabel.BackgroundTransparency = 1
+FOVDisplayLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+FOVDisplayLabel.Font = Enum.Font.SourceSans
+FOVDisplayLabel.TextSize = 18
+FOVDisplayLabel.Text = "Field of View: " .. Settings.FOV
+FOVDisplayLabel.Parent = MainMenu
+
+local SliderTrack = Instance.new("Frame")
+SliderTrack.Size = UDim2.new(1, -30, 0, 6)
+SliderTrack.Position = UDim2.new(0, 15, 0, 120)
+SliderTrack.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SliderTrack.BorderSizePixel = 0
+SliderTrack.Parent = MainMenu
+
+local SliderKnob = Instance.new("TextButton")
+SliderKnob.Size = UDim2.new(0, 14, 0, 20)
+SliderKnob.Position = UDim2.new(0.45, 0, -1.1, 0)
+SliderKnob.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+SliderKnob.Text = ""
+SliderKnob.Parent = SliderTrack
+
+local UICornerKnob = Instance.new("UICorner")
+UICornerKnob.CornerRadius = UDim.new(0, 4)
+UICornerKnob.Parent = SliderKnob
+
+CreateMenuToggle("TeamCheckToggle", "Team Filtration Pass", UDim2.new(0, 15, 0, 145), Settings.TeamCheck, function(state) Settings.TeamCheck = state end)
+CreateMenuToggle("KillCheckToggle", "Liveliness Verification", UDim2.new(0, 15, 0, 190), Settings.KillCheck, function(state) Settings.KillCheck = state end)
+CreateMenuToggle("WallCheckToggle", "Occlusion Raycast Check", UDim2.new(0, 15, 0, 235), Settings.WallCheck, function(state) Settings.WallCheck = state end)
+
+local TargetPartButton = Instance.new("TextButton")
+TargetPartButton.Size = UDim2.new(1, -30, 0, 38)
+TargetPartButton.Position = UDim2.new(0, 15, 0, 280)
+TargetPartButton.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+TargetPartButton.TextColor3 = Color3.fromRGB(240, 240, 240)
+TargetPartButton.Font = Enum.Font.SourceSansSemibold
+TargetPartButton.TextSize = 16
+TargetPartButton.Text = "Target Part: HEAD"
+TargetPartButton.Parent = MainMenu
+
+local UICornerTarget = Instance.new("UICorner")
+UICornerTarget.CornerRadius = UDim.new(0, 6)
+UICornerTarget.Parent = TargetPartButton
+
+local UIStrokeTarget = Instance.new("UIStroke")
+UIStrokeTarget.Color = Color3.fromRGB(50, 50, 50)
+UIStrokeTarget.Thickness = 1
+UIStrokeTarget.Parent = TargetPartButton
+
+TargetPartButton.MouseButton1Click:Connect(function()
+    if Settings.TargetPart == "Head" then
+        Settings.TargetPart = "HumanoidRootPart"
+        TargetPartButton.Text = "Target Part: TORSO"
+    else
+        Settings.TargetPart = "Head"
+        TargetPartButton.Text = "Target Part: HEAD"
+    end
+end)
+
+local CloseControl = Instance.new("TextButton")
+CloseControl.Size = UDim2.new(0, 24, 0, 24)
+CloseControl.Position = UDim2.new(1, -34, 0, 12)
+CloseControl.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+CloseControl.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseControl.Text = "X"
+CloseControl.Font = Enum.Font.SourceSansBold
+CloseControl.TextSize = 14
+CloseControl.Parent = MainMenu
+
+local UICornerClose = Instance.new("UICorner")
+UICornerClose.CornerRadius = UDim.new(1, 0)
+UICornerClose.Parent = CloseControl
+
+LogoButton.MouseButton1Click:Connect(function() MainMenu.Visible = not MainMenu.Visible end)
+CloseControl.MouseButton1Click:Connect(function() MainMenu.Visible = false end)
+
+local isDragging = false
+SliderKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isDragging = true end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local deltaX = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
+        SliderKnob.Position = UDim2.new(deltaX, -7, -1.1, 0)
+        Settings.FOV = math.floor(40 + (deltaX * 460))
+        FOVDisplayLabel.Text = "Field of View: " .. Settings.FOV
+        FOVCircle.Radius = Settings.FOV
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isDragging = false end
+end)
+
+local function PassWallCheck(targetPart, enemyCharacter)
+    if not Settings.WallCheck then return true end
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, enemyCharacter}
+    raycastParams.IgnoreWater = true
+    return Workspace:Raycast(Camera.CFrame.Position, targetPart.Position - Camera.CFrame.Position, raycastParams) == nil
+end
+
+local function CharacterIsWieldingSniper()
+    if not LocalPlayer.Character then return false end
+    local activeTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if activeTool then
+        local toolName = activeTool.Name:lower()
+        return toolName:find("sniper") or toolName:find("awp") or toolName:find("rifle") or toolName:find("bolt") or toolName:find("scope") or toolName:find("scout")
+    end
+    return false
+end
+
+local function TargetIsCloaked(character)
+    if not character then return false end
+    local equippedTool = character:FindFirstChildOfClass("Tool")
+    if equippedTool then
+        local name = equippedTool.Name:lower()
+        if name:find("cloak") or name:find("invisible") or name:find("hide") or name:find("vanish") then
+            return true
+        end
+    end
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            if part.Transparency > 0.65 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+task.spawn(function()
+    while task.wait(0.03) do 
+        if not Settings.AimbotEnabled or not LocalPlayer.Character then 
+            _G.GlobalTargetPart = nil
+            continue 
+        end
+        
+        local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not localRoot then _G.GlobalTargetPart = nil continue end
+
+        local potentialTarget = nil
+        local optimalTargetScore = math.huge
+        local isHoldingSniper = CharacterIsWieldingSniper()
+        
+        local activeAttacker = _G.LastAttacker
+        local attackerValid = (activeAttacker and activeAttacker.Character and (os.clock() - (_G.LastAttackerTime or 0) < 4.0))
+
+        local allPlayers = Players:GetPlayers()
+        for i = 1, #allPlayers do
+            local player = allPlayers[i]
+            if player ~= LocalPlayer and player.Character then
+                local character = player.Character
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                
+                if Settings.KillCheck and (not humanoid or humanoid.Health <= 0) then continue end
+                if Settings.TeamCheck and player.Team == LocalPlayer.Team then continue end
+                if Settings.IgnoreShields and character:FindFirstChildOfClass("ForceField") then continue end
+                if TargetIsCloaked(character) then continue end
+
+                local targetBone = character:FindFirstChild(Settings.TargetPart) or character:FindFirstChild("HumanoidRootPart") or character:FindFirstChildWhichIsA("BasePart")
+                local rootPart = character:FindFirstChild("HumanoidRootPart") or targetBone
+                if not targetBone or not rootPart then continue end
+
+                local physicalDistance = (rootPart.Position - localRoot.Position).Magnitude
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetBone.Position)
+                local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                local fovDistance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+
+                local isCQCZone = (physicalDistance <= Settings.CQCDistance)
+                local isMidZone = (physicalDistance > Settings.CQCDistance and physicalDistance <= Settings.MidDistance)
+                local isSniperZone = (physicalDistance > Settings.MidDistance and physicalDistance <= Settings.MaxSniperDistance)
+
+                local targetValid = false
+                local targetScoreWeight = physicalDistance
+
+                if attackerValid and player == activeAttacker then
+                    targetValid = true
+                    targetScoreWeight = physicalDistance * 0.01 
+                elseif isCQCZone then
+                    targetValid = true
+                    targetScoreWeight = physicalDistance * 0.1 
+                elseif isMidZone and onScreen and (fovDistance <= Settings.FOV) then
+                    targetValid = true
+                    targetScoreWeight = physicalDistance * 1.0
+                elseif isSniperZone and isHoldingSniper and onScreen and (fovDistance <= Settings.FOV) then
+                    targetValid = true
+                    targetScoreWeight = physicalDistance * 2.0
+                end
+
+                if targetValid and targetScoreWeight < optimalTargetScore and PassWallCheck(targetBone, character) then
+                    optimalTargetScore = targetScoreWeight
+                    potentialTarget = targetBone
+                end
+            end
+        end
+        _G.GlobalTargetPart = potentialTarget
+    end
+end)
+
+RunService:BindToRenderStep("FluidCameraStabilizer", Enum.RenderPriority.Camera.Value + 1, function()
+    CalibrateFOVCenter()
+    Camera.CameraType = Enum.CameraType.Custom 
+    
+    if Settings.AimbotEnabled and _G.GlobalTargetPart and _G.GlobalTargetPart.Parent then
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or #UserInputService:GetFocusedTextBox() == 0 then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, _G.GlobalTargetPart.Position)
+        end
+    end
+end)
+                                    
