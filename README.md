@@ -6,6 +6,7 @@ Randomizer Script Info:
 [When an enemy is near to you it will aim at it]
 [and when there's an enemy at mid range it will probably aim at it to]
 [and when you have sniper the aimbot will gonna have aim rnage of sniper to]
+
 •Logo
 [Well the logo was just an black and no picture at all]
 [you can click the logo which open the ui and click it again it closed the ui]
