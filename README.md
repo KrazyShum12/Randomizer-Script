@@ -17,5 +17,13 @@ Randomizer Script Info:
 *Fov - you can change it how much big it is
 *Aimbot - this can scan the surrounding which if there's an enemy in your back it will aim it and when someone shoots you it will aim it to
 
+Special Info:
+[it doesn't aimbot those player's have shield]
+[and it doesn't aimbot does player having invis item so it won't get suspicious]
+
+Annoying Info:
+[Aimbot drift away in player sometimes when your in crazy fight]
+[Sometimes Lags when in shooting fights with many - for those Android]
+
 That's all Thank you for using this script❤️
 made by: [KaiZoRa2]
